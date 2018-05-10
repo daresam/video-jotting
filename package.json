@@ -15,6 +15,7 @@
   "author": "Dare Samuel",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.18.2",
     "connect-flash": "^0.1.1",
     "express": "^4.16.3",

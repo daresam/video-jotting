@@ -4,8 +4,11 @@ const exphbs = require('express-handlebars');
 const path = require('path');
 const bodyParser = require('body-parser');
 const methodOverRide = require('method-override');
+const flash = require('connect-flash');
+const session = require('express-session');
 
-const Idea = require('./models/Idea');
+const ideas = require('./routes/ideas');
+const users = require('./routes/users');
 
 // Express
 let app = express();
@@ -25,9 +28,28 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
+const port = process.env.PORT || 3000;
+
 // Method Override Middleware
 app.use(methodOverRide('_method'));
-const port = process.env.PORT || 3000;
+
+// Expression Session Middleware
+app.use(session({
+    secret: 'keyboard cat',
+    resave: true,
+    saveUninitialized: true
+  }))
+
+// Lash Middleware
+app.use(flash());
+
+//Global Variables
+app.use((req, res, next) => {
+    res.locals.success_msg = req.flash('success_msg');
+    res.locals.error_msg = req.flash('error_msg');
+    res.locals.error = req.flash('error');
+    next();
+});
 
 // Static Files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -51,101 +73,12 @@ app.get('/about', (req, res) => {
     res.render('about')
 });
 
-// Ideas
-app.get('/ideas', (req, res) => {
-    Idea.find({})
-        .sort({date: 'desc'})
-        .then(ideas => {
-            res.render('ideas/index', {
-                ideas: ideas
-            })
-        })
-});
-// Add Ideas Form
-app.get('/ideas/add', (req, res) => {
-    res.render('ideas/add');
-});
 
-// Add Ideas
-app.post('/ideas', (req, res) => {
-    let errors = [];
-    const title = req.body.title;
-    const details = req.body.details;
+// Users Routes
+app.use('/users', users);
 
-    if(!title) {
-        errors.push({text: 'Please add a title'});
-    }
-    if(!details) {
-        errors.push({text: 'Please add some details'});
-    }
-    if (errors.length > 0) {
-        res.render('ideas/add', {
-            errors: errors,
-            title: title,
-            details: details
-        });
-    } else {
-        const newUser = {
-            title: title,
-            details: details
-        };
-
-        const idea = new Idea(newUser);
-        idea.save()
-            .then(idea => {
-                res.redirect('/ideas');
-            }).catch(err => console.log(`Error: ${err}`))
-    }
-});
-
-// Edit Idea Form
-app.get('/ideas/edit/:id', (req, res) => {
-    const id = {_id: req.params.id};
-    Idea.findOne(id).then(idea => {
-        res.render('ideas/edit', {
-            idea: idea
-        })
-    });
-   
-});
-
-// Update Ideas
-app.put('/ideas/update/:id', (req, res) => {
-    let errors = [];
-    const title = req.body.title;
-    const details = req.body.details;
-
-    if(!title) {
-        errors.push({text: 'Please add a title'});
-    }
-    if(!details) {
-        errors.push({text: 'Please add some details'});
-    }
-    if (errors.length > 0) {
-        res.render('ideas/edit', {
-            errors: errors,
-            idea: {title: title, details: details}
-        });
-    } else {
-        const id = {_id: req.params.id};
-        Idea.findOne(id)
-        .then(idea => {
-            idea.title = req.body.title;
-            idea.details = req.body.details;
-            idea.save().then(idea => {
-                res.redirect('/ideas');
-            });
-        });
-    }
-});
-
-app.delete('/ideas/destroy/:id', (req, res) => {
-    const id = {_id: req.params.id};
-
-    Idea.remove(id).then(idea => {
-        res.redirect('/ideas');
-    })
-})
+// Ideas Routes
+app.use('/ideas', ideas);
 
 //Listening to Port
 app.listen(port, () => console.log(`Listening on Port: ${port}`));
