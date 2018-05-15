@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const methodOverRide = require('method-override');
 const flash = require('connect-flash');
 const session = require('express-session');
+const passport = require('passport');
 
 const ideas = require('./routes/ideas');
 const users = require('./routes/users');
@@ -38,9 +39,13 @@ app.use(session({
     secret: 'keyboard cat',
     resave: true,
     saveUninitialized: true
-  }))
+  }));
 
-// Lash Middleware
+//  Passport Middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+// flash Middleware
 app.use(flash());
 
 //Global Variables
@@ -48,12 +53,12 @@ app.use((req, res, next) => {
     res.locals.success_msg = req.flash('success_msg');
     res.locals.error_msg = req.flash('error_msg');
     res.locals.error = req.flash('error');
+    res.locals.user = req.user || null;
     next();
 });
 
 // Static Files
 app.use(express.static(path.join(__dirname, 'public')));
-
 //Handlebar Template Engine
 app.engine('handlebars', exphbs({
     defaultLayout: 'main'
@@ -76,9 +81,10 @@ app.get('/about', (req, res) => {
 
 // Users Routes
 app.use('/users', users);
-
 // Ideas Routes
 app.use('/ideas', ideas);
 
+// Passport Config
+require('./config/passport')(passport);
 //Listening to Port
 app.listen(port, () => console.log(`Listening on Port: ${port}`));
