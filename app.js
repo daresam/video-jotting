@@ -10,6 +10,7 @@ const passport = require('passport');
 
 const ideas = require('./routes/ideas');
 const users = require('./routes/users');
+const db = require('./config/database');
 
 
 // Express
@@ -19,7 +20,7 @@ let app = express();
 Promise.mongoose = global.Promise;
 
 //Mongoose DB
-mongoose.connect('mongodb://localhost:27017/videojotting')
+mongoose.connect(db.mongoURI)
         .then(() => console.log('Connected'))
         .catch((err) => console.log(err))
 
@@ -30,6 +31,7 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
+// Port
 const port = process.env.PORT || 3000;
 
 // Method Override Middleware
