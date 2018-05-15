@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const Idea = require('../models/Idea');
+const {ensureAuthenticated} = require('../helpers/auth');
+
 
 
 // Ideas
-router.get('', (req, res) => {
-    Idea.find({})
+router.get('', ensureAuthenticated, (req, res) => {
+    Idea.find({user: req.user.id})
         .sort({date: 'desc'})
         .then(ideas => {
             res.render('ideas/index', {
@@ -14,12 +16,13 @@ router.get('', (req, res) => {
         })
 });
 // Add Ideas Form
-router.get('/add', (req, res) => {
+router.get('/add', ensureAuthenticated, (req, res) => {
     res.render('ideas/add');
 });
 
 // Add Ideas
-router.post('', (req, res) => {
+router.post('', ensureAuthenticated, (req, res) => {
+    console.log(req.user)
     let errors = [];
     const title = req.body.title;
     const details = req.body.details;
@@ -39,7 +42,8 @@ router.post('', (req, res) => {
     } else {
         const newUser = {
             title: title,
-            details: details
+            details: details,
+            user: req.user.id
         };
 
         const idea = new Idea(newUser);
@@ -52,18 +56,23 @@ router.post('', (req, res) => {
 });
 
 // Edit Idea Form
-router.get('/edit/:id', (req, res) => {
+router.get('/edit/:id', ensureAuthenticated, (req, res) => {
     const id = {_id: req.params.id};
     Idea.findOne(id).then(idea => {
-        res.render('ideas/edit', {
-            idea: idea
-        })
+        if(idea.user !== req.user.id){
+            req.flash('error_msg', 'Not Authorize');
+            res.redirect('/ideas');
+        } else {
+            res.render('ideas/edit', {
+                idea: idea
+            });
+        }
     });
    
 });
 
 // Update Ideas
-router.put('/update/:id', (req, res) => {
+router.put('/update/:id', ensureAuthenticated, (req, res) => {
     let errors = [];
     const title = req.body.title;
     const details = req.body.details;
@@ -93,7 +102,7 @@ router.put('/update/:id', (req, res) => {
     }
 });
 
-router.delete('/destroy/:id', (req, res) => {
+router.delete('/destroy/:id', ensureAuthenticated, (req, res) => {
     const id = {_id: req.params.id};
 
     Idea.remove(id).then(idea => {
